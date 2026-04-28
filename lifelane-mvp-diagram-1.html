@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LifeLane AI – MVP Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #FF2D2D;
+    --amber: #FFAA00;
+    --green: #00E676;
+    --blue: #00B4FF;
+    --dark: #080C14;
+    --panel: #0D1421;
+    --border: #1E2D44;
+    --text: #C8D8F0;
+    --dim: #5A7090;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark);
+    font-family: 'Space Mono', monospace;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 24px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,180,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,180,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .header .badge {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    padding: 4px 14px;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(22px, 5vw, 38px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 2px;
+  }
+  .header h1 span { color: var(--red); }
+  .header p {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+
+  /* Pulse dot */
+  .pulse {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 6px;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(0,230,118,0.5); }
+    50% { box-shadow: 0 0 0 8px rgba(0,230,118,0); }
+  }
+
+  /* Diagram layout */
+  .diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* Row */
+  .row {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .row.center { justify-content: center; }
+
+  /* Arrow connectors */
+  .arrow-down {
+    text-align: center;
+    color: var(--dim);
+    font-size: 22px;
+    line-height: 1;
+    position: relative;
+  }
+  .arrow-down::after {
+    content: '▼';
+    display: block;
+    animation: blink 1.8s step-end infinite;
+    color: var(--blue);
+  }
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  /* Box */
+  .box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 18px;
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .box.red::before   { background: var(--red); }
+  .box.amber::before { background: var(--amber); }
+  .box.green::before { background: var(--green); }
+  .box.blue::before  { background: var(--blue); }
+  .box.purple::before { background: #A855F7; }
+
+  .box:hover { border-color: rgba(0,180,255,0.4); }
+
+  .box-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .box.red   .box-label { color: var(--red); }
+  .box.amber .box-label { color: var(--amber); }
+  .box.green .box-label { color: var(--green); }
+  .box.blue  .box-label { color: var(--blue); }
+  .box.purple .box-label { color: #A855F7; }
+
+  .box h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    color: #fff;
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+  .box ul {
+    list-style: none;
+    padding: 0;
+  }
+  .box ul li {
+    font-size: 10px;
+    color: var(--dim);
+    padding: 3px 0;
+    padding-left: 12px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .box ul li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--blue);
+  }
+
+  /* Icon emoji */
+  .icon { font-size: 20px; margin-bottom: 6px; display: block; }
+
+  /* Users row special */
+  .users-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .user-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 12px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .user-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .user-box.c1::before { background: var(--red); }
+  .user-box.c2::before { background: var(--amber); }
+  .user-box.c3::before { background: var(--green); }
+  .user-box.c4::before { background: var(--blue); }
+
+  .user-box .icon { font-size: 24px; }
+  .user-box h4 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: #fff;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .user-box p {
+    font-size: 9px;
+    color: var(--dim);
+    line-height: 1.4;
+  }
+
+  /* Tech stack row */
+  .tech-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 4px;
+  }
+  .tech-pill {
+    font-size: 9px;
+    letter-spacing: 1px;
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 2px;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+  .tech-pill.highlight {
+    border-color: var(--blue);
+    color: var(--blue);
+  }
+
+  /* Flow arrows between sections */
+  .connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+  .connector .line {
+    height: 1px;
+    flex: 1;
+    max-width: 60px;
+    background: linear-gradient(90deg, transparent, var(--border));
+  }
+  .connector .line.r { background: linear-gradient(90deg, var(--border), transparent); }
+
+  /* Section label */
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--dim);
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  /* SDG badge */
+  .sdg-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .sdg-pill {
+    font-size: 9px;
+    padding: 4px 12px;
+    border-radius: 2px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .sdg-pill.s3  { background: rgba(76,175,80,0.15); border: 1px solid #4CAF50; color: #4CAF50; }
+  .sdg-pill.s11 { background: rgba(255,152,0,0.15); border: 1px solid #FF9800; color: #FF9800; }
+  .sdg-pill.s16 { background: rgba(0,150,136,0.15); border: 1px solid #009688; color: #009688; }
+
+  /* Google tech bar */
+  .google-bar {
+    background: linear-gradient(135deg, #0D1421 0%, #0D1B2D 100%);
+    border: 1px solid #1E3050;
+    border-radius: 6px;
+    padding: 14px 20px;
+    text-align: center;
+  }
+  .google-bar .g-title {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+  .footer strong { color: var(--blue); }
+
+  /* Responsive */
+  @media(max-width: 640px) {
+    .users-row { grid-template-columns: repeat(2,1fr); }
+    .row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge">Solution Challenge 2026 · GDG × Hack2Skill</div>
+    <h1>LIFE<span>LANE</span> AI</h1>
+    <p><span class="pulse"></span>Smart Emergency Corridor System — MVP Architecture Diagram</p>
+  </div>
+
+  <div class="diagram">
+
+    <!-- Layer 1: Users -->
+    <div class="section-label">[ USER LAYER ]</div>
+    <div class="users-row">
+      <div class="user-box c1">
+        <span class="icon">🚶</span>
+        <h4>Normal Citizen</h4>
+        <p>Traffic guides & route advisories</p>
+      </div>
+      <div class="user-box c2">
+        <span class="icon">🚑</span>
+        <h4>Emergency Vehicle</h4>
+        <p>Ambulance / Fire Truck dispatch</p>
+      </div>
+      <div class="user-box c3">
+        <span class="icon">🏥</span>
+        <h4>Hospital Staff</h4>
+        <p>Patient alerts & bed readiness</p>
+      </div>
+      <div class="user-box c4">
+        <span class="icon">👮</span>
+        <h4>Traffic Officer</h4>
+        <p>Clear paths for emergency vehicles</p>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow-down"></div>
+
+    <!-- Layer 2: Frontend -->
+    <div class="section-label">[ FRONTEND LAYER ]</div>
+    <div class="row">
+      <div class="box blue">
+        <div class="box-label">Web App</div>
+        <h3>⚡ React / Next.js PWA</h3>
+        <ul>
+          <li>Role-based dashboard per user type</li>
+          <li>Real-time map interface (Google Maps SDK)</li>
+          <li>Push notification support</li>
+          <li>Responsive & offline-capable (PWA)</li>
+        </ul>
+      </div>
+      <div class="box blue">
+        <div class="box-label">Mobile App</div>
+        <h3>📱 Flutter (Android / iOS)</h3>
+        <ul>
+          <li>GPS live location tracking</li>
+          <li>SOS trigger & route alerts</li>
+          <li>Vehicle-side green corridor activation</li>
+          <li>Background service for officers</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow-down"></div>
+
+    <!-- Layer 3: Core AI Engine -->
+    <div class="section-label">[ AI ENGINE LAYER ]</div>
+    <div class="row">
+      <div class="box red">
+        <div class="box-label">Core Intelligence</div>
+        <h3>🧠 Gemini AI Engine</h3>
+        <ul>
+          <li>Route optimization for emergency vehicles</li>
+          <li>Congestion prediction & traffic analysis</li>
+          <li>ETA calculation to hospital</li>
+          <li>Natural language alert generation</li>
+        </ul>
+      </div>
+      <div class="box amber">
+        <div class="box-label">Signal Control</div>
+        <h3>🚦 Smart Corridor Logic</h3>
+        <ul>
+          <li>Auto green-wave on emergency route</li>
+          <li>Signal override via IoT / API</li>
+          <li>Bystander rerouting algorithm</li>
+          <li>Conflict resolution (multi-vehicle)</li>
+        </ul>
+      </div>
+      <div class="box green">
+        <div class="box-label">Notification Engine</div>
+        <h3>🔔 Alert System</h3>
+        <ul>
+          <li>Hospital pre-alert with ETA + case info</li>
+          <li>FCM push to traffic officers</li>
+          <li>Citizen app route advisory</li>
+          <li>WhatsApp / SMS fallback</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow-down"></div>
+
+    <!-- Layer 4: Backend -->
+    <div class="section-label">[ BACKEND LAYER ]</div>
+    <div class="row">
+      <div class="box purple">
+        <div class="box-label">API & Logic</div>
+        <h3>⚙️ Firebase Functions + Node.js</h3>
+        <ul>
+          <li>REST APIs for all 4 user roles</li>
+          <li>WebSocket for real-time location sync</li>
+          <li>Authentication (Firebase Auth)</li>
+          <li>Role-based access control (RBAC)</li>
+        </ul>
+      </div>
+      <div class="box purple">
+        <div class="box-label">Database</div>
+        <h3>🗄️ Firestore + Realtime DB</h3>
+        <ul>
+          <li>Live vehicle location (Realtime DB)</li>
+          <li>Hospital bed & staff status</li>
+          <li>Incident history & analytics</li>
+          <li>User profiles & roles</li>
+        </ul>
+      </div>
+      <div class="box purple">
+        <div class="box-label">Maps & Routing</div>
+        <h3>🗺️ Google Maps Platform</h3>
+        <ul>
+          <li>Directions API (emergency routing)</li>
+          <li>Roads API (real-time traffic data)</li>
+          <li>Places API (nearest hospitals)</li>
+          <li>Distance Matrix (multi-hospital)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow-down"></div>
+
+    <!-- Layer 5: Google Tech Stack -->
+    <div class="section-label">[ GOOGLE TECH STACK ]</div>
+    <div class="google-bar">
+      <div class="g-title">🔧 Technologies Used</div>
+      <div class="tech-row">
+        <div class="tech-pill highlight">Gemini AI</div>
+        <div class="tech-pill highlight">Firebase</div>
+        <div class="tech-pill highlight">Flutter</div>
+        <div class="tech-pill highlight">Google Maps SDK</div>
+        <div class="tech-pill">Cloud Functions</div>
+        <div class="tech-pill">Firestore</div>
+        <div class="tech-pill">FCM Push</div>
+        <div class="tech-pill">Google Cloud Run</div>
+        <div class="tech-pill">Vertex AI</div>
+        <div class="tech-pill">Identity Platform</div>
+      </div>
+    </div>
+
+    <!-- SDG Goals -->
+    <div class="section-label" style="margin-top:8px;">[ UN SDG ALIGNMENT ]</div>
+    <div class="sdg-row">
+      <div class="sdg-pill s3">SDG 3 — Good Health & Well-Being</div>
+      <div class="sdg-pill s11">SDG 11 — Sustainable Cities</div>
+      <div class="sdg-pill s16">SDG 16 — Peace, Justice & Institutions</div>
+    </div>
+
+  </div><!-- /diagram -->
+
+  <div class="footer">
+    <strong>LifeLane AI</strong> · ai-smart-corridor.vercel.app · Solution Challenge 2026 · Built with Google AI
+  </div>
+
+</div>
+</body>
+</html>
